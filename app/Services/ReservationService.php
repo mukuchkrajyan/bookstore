@@ -11,50 +11,107 @@ use RuntimeException;
 
 class ReservationService
 {
-    public function __construct(
-        private Book $book,
-        private Reservation $reservation
-    ) {}
+    public
+    function paginate(int $perPage = 10)
+    {
+        return Reservation::query()
+            ->latest()
+            ->paginate($perPage);
+    }
 
-public function create(int $userId, int $bookId, int $quantity): Reservation
-{
-    return DB::transaction(function () use ($userId, $bookId, $quantity) {
+    public
+    function getItemById(int $id): Reservation
+    {
+        return Reservation::findOrFail($id);
+    }
 
-        $book = $this->book
-            ->newQuery()
-            ->lockForUpdate()
-            ->findOrFail($bookId);
+    public function create(int $userId, int $bookId, int $quantity): Reservation
+    {
+        return DB::transaction(function () use ($userId, $bookId, $quantity) {
 
-        if ($book->stock < $quantity) {
-            throw new RuntimeException('Insufficient stock');
-        }
+            $book = Book::query()
+                ->lockForUpdate()
+                ->findOrFail($bookId);
 
-        $hasPendingReservation = $this->reservation
-            ->newQuery()
-            ->where('user_id', $userId)
-            ->where('book_id', $bookId)
-            ->where('status', ReservationStatus::Pending)
-            ->lockForUpdate()
-            ->exists();
+            if ($book->stock < $quantity) {
+                throw new RuntimeException('Insufficient stock');
+            }
 
-        if ($hasPendingReservation) {
-            throw new RuntimeException('User already has pending reservation');
-        }
+            $hasPendingReservation = Reservation::query()
+                ->where('user_id', $userId)
+                ->where('book_id', $bookId)
+                ->where('status', ReservationStatus::Pending)
+                ->lockForUpdate()
+                ->exists();
 
-        $reservation = $this->reservation->create([
-            'user_id' => $userId,
-            'book_id' => $bookId,
-            'quantity' => $quantity,
-            'status' => ReservationStatus::Pending,
-        ]);
+            if ($hasPendingReservation) {
+                throw new RuntimeException('User already has pending reservation');
+            }
 
-        $book->decrement('stock', $quantity);
+            $reservation = Reservation::create([
+                'user_id' => $userId,
+                'book_id' => $bookId,
+                'quantity' => $quantity,
+                'status' => ReservationStatus::Pending,
+                'expires_at' => now()->addMinutes(30),
+            ]);
 
-        DB::afterCommit(function () use ($reservation) {
-            event(new ReservationCreated($reservation));
+            $book->decrement('stock', $quantity);
+
+            DB::afterCommit(function () use ($reservation) {
+                event(new ReservationCreated($reservation));
+            });
+
+            return $reservation;
         });
+    }
 
-        return $reservation;
-    });
-}
+    public function updateStatus(int $id, ReservationStatus $status): void
+    {
+        DB::transaction(function () use ($id, $status) {
+
+            $reservation = Reservation::query()
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            if ($reservation->status === ReservationStatus::Pending &&
+                $status === ReservationStatus::Cancelled) {
+
+                $reservation->book()
+                    ->lockForUpdate()
+                    ->first()
+                    ->increment('stock', $reservation->quantity);
+            }
+
+            $reservation->update([
+                'status' => $status
+            ]);
+
+        });
+    }
+
+    public function cancelExpired(): int
+    {
+        return DB::transaction(function () {
+
+            $reservations = Reservation::query()
+                ->where('status', ReservationStatus::Pending)
+                ->where('expires_at', '<', now())
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($reservations as $reservation) {
+
+                $reservation->book
+                    ->increment('stock', $reservation->quantity);
+
+                $reservation->update([
+                    'status' => ReservationStatus::Cancelled
+                ]);
+            }
+
+            return $reservations->count();
+        });
+    }
+
 }
