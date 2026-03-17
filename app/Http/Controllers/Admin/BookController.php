@@ -1,16 +1,19 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
-use App\Services\BookService;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBookRequest;
+use App\Services\BookService;
 use Illuminate\View\View;
 
 class BookController extends Controller
 {
     public function __construct(
         protected BookService $bookService
-    ) {}
+    )
+    {
+    }
 
     public
     function index(): View
@@ -29,7 +32,7 @@ class BookController extends Controller
     {
         $book = $this->bookService->getItemById($id);
 
-        return view('books.show');
+        return view('books.show', compact('book'));
     }
 
     public function store(StoreBookRequest $request)

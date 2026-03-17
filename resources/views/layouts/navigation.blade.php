@@ -19,10 +19,16 @@
                     </x-nav-link>
                 </div>
 
-
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('books.index')" :active="request()->routeIs('books*')">
                         {{ __('Books') }}
+                    </x-nav-link>
+
+                </div>
+
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('reservations.index')" :active="request()->routeIs('reservations*')">
+                        {{ __('Reservations') }}
                     </x-nav-link>
 
                 </div>
@@ -61,6 +67,21 @@
                     </x-slot>
                 </x-dropdown>
             </div>
+
+            <div class="absolute right-0 mt-2 w-40 bg-white border rounded shadow">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+
+                    <button
+                        type="submit"
+                        class="w-full text-left px-4 py-2 hover:bg-gray-100"
+                    >
+                        Logout
+                    </button>
+                </form>
+            </div>
+
+
 
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">

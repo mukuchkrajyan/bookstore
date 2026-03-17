@@ -37,7 +37,7 @@
 
                         <td class="px-4 py-2 space-x-2">
 
-                            <a href="#" class="text-blue-600 hover:underline">
+                            <a href="{{ route('books.show',$book->id) }}" class="text-blue-600 hover:underline">
                                 View
                             </a>
 

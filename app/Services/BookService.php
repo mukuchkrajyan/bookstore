@@ -6,36 +6,26 @@ use App\Models\Book;
 
 class BookService
 {
-    public function __construct(
-        private Book $model
-    ) {}
-
-    public
-    function paginate(int $perPage = 10)
+    public function paginate(int $perPage = 10)
     {
-        return $this->model
-            ->newQuery()
+        return Book::query()
             ->latest()
             ->paginate($perPage);
     }
 
-    public
-    function create(array $data): Book
+    public function create(array $data): Book
     {
-        return $this->model->create($data);
+        return Book::create($data);
     }
 
-    public
-    function getItemById(int $id): Book
+    public function getItemById(int $id): Book
     {
-        return $this->model->findOrFail($id);
+        return Book::findOrFail($id);
     }
 
-    public
-    function findForUpdate(int $id): Book
+    public function findForUpdate(int $id): Book
     {
-        return $this->model
-            ->newQuery()
+        return Book::query()
             ->lockForUpdate()
             ->findOrFail($id);
     }

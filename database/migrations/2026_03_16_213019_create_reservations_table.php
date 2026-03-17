@@ -18,9 +18,10 @@ return new class extends Migration
 
             $table->unsignedInteger('quantity');
 
-            $table->string('status',20)->default('pending');
+            $table->enum('status', ['pending', 'confirmed', 'cancelled'])
+                ->default('pending');
 
-            $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 
         });
