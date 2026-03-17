@@ -2,47 +2,59 @@
 
 namespace App\Services;
 
+use App\Enums\ReservationStatus;
 use App\Models\Book;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\DB;
 use App\Events\ReservationCreated;
-use Exception;
+use RuntimeException;
 
 class ReservationService
 {
-    public function create(int $userId, int $bookId, int $quantity): Reservation
-    {
-        return DB::transaction(function () use ($userId, $bookId, $quantity) {
+    public function __construct(
+        private Book $book,
+        private Reservation $reservation
+    ) {}
 
-            $book = Book::where('id', $bookId)
-                ->lockForUpdate()
-                ->firstOrFail();
+public function create(int $userId, int $bookId, int $quantity): Reservation
+{
+    return DB::transaction(function () use ($userId, $bookId, $quantity) {
 
-            if ($book->stock < $quantity) {
-                throw new Exception('Insufficient stock');
-            }
+        $book = $this->book
+            ->newQuery()
+            ->lockForUpdate()
+            ->findOrFail($bookId);
 
-            $exists = Reservation::where('user_id', $userId)
-                ->where('book_id', $bookId)
-                ->where('status', 'pending')
-                ->exists();
+        if ($book->stock < $quantity) {
+            throw new RuntimeException('Insufficient stock');
+        }
 
-            if ($exists) {
-                throw new Exception('Already has active reservation');
-            }
+        $hasPendingReservation = $this->reservation
+            ->newQuery()
+            ->where('user_id', $userId)
+            ->where('book_id', $bookId)
+            ->where('status', ReservationStatus::Pending)
+            ->lockForUpdate()
+            ->exists();
 
-            $book->decrement('stock', $quantity);
+        if ($hasPendingReservation) {
+            throw new RuntimeException('User already has pending reservation');
+        }
 
-            $reservation = Reservation::create([
-                'user_id' => $userId,
-                'book_id' => $bookId,
-                'quantity' => $quantity,
-                'status' => 'pending',
-            ]);
+        $reservation = $this->reservation->create([
+            'user_id' => $userId,
+            'book_id' => $bookId,
+            'quantity' => $quantity,
+            'status' => ReservationStatus::Pending,
+        ]);
 
+        $book->decrement('stock', $quantity);
+
+        DB::afterCommit(function () use ($reservation) {
             event(new ReservationCreated($reservation));
-
-            return $reservation;
         });
-    }
+
+        return $reservation;
+    });
+}
 }
