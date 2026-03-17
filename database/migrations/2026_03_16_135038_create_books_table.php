@@ -16,8 +16,10 @@ return new class extends Migration
             $table->string('title');
             $table->string('author');
             $table->decimal('price', 8, 2);
-            $table->integer('stock')->default(0);
+            $table->unsignedInteger('stock')->default(0);
             $table->timestamps();
+
+            $table->unique(['title', 'author']);
         });
     }
 
