@@ -45,12 +45,12 @@
                         </td>
 
                         <td class="px-4 py-3">
-
-                            @if($reservation->status === 'pending')
+                            @php($status    =   $reservation->status->value)
+                            @if($status === 'pending')
                                 <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
                                 Pending
                             </span>
-                            @elseif($reservation->status === 'confirmed')
+                            @elseif($status === 'confirmed')
                                 <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
                                 Confirmed
                             </span>
@@ -73,7 +73,7 @@
                                 View
                             </a>
 
-                            @if($reservation->status === 'pending')
+                            @if($status === 'pending')
 
                                 <form method="POST"
                                       action="{{ route('reservations.confirm',$reservation->id) }}">
