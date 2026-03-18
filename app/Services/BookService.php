@@ -13,6 +13,11 @@ class BookService
             ->paginate($perPage);
     }
 
+    public function availableBooks()
+    {
+        return Book::latest()->where('stock', '>', 0)->get();
+    }
+
     public function create(array $data): Book
     {
         return Book::create($data);
@@ -21,6 +26,13 @@ class BookService
     public function getItemById(int $id): Book
     {
         return Book::findOrFail($id);
+    }
+
+    public function hasEnoughStock(int $bookId, int $quantity): bool
+    {
+        $book = $this->getItemById($bookId);
+
+        return $book->stock >= $quantity;
     }
 
     public function findForUpdate(int $id): Book

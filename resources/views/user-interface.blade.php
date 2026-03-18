@@ -8,6 +8,10 @@
             User Interface
         </h2>
 
+        <p class="text-gray-600 mb-6">
+            This is a simple user interface for testing the reservation system.
+        </p>
+        
         <div class="bg-white shadow rounded-lg p-6">
 
             <div class="mb-4">

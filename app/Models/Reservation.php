@@ -10,7 +10,8 @@ class Reservation extends Model
         'user_id',
         'book_id',
         'quantity',
-        'status'
+        'status',
+        'expires_at',
     ];
 
     public function book()
