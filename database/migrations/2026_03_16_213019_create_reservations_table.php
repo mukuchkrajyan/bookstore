@@ -18,15 +18,14 @@ return new class extends Migration
 
             $table->unsignedInteger('quantity');
 
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])
-                ->default('pending');
+            $table->enum('status', array_column(ReservationStatus::cases(), 'value'))->default(ReservationStatus::Pending->value);
 
             $table->timestamp('expires_at')->nullable();
 
             $table->timestamps();
 
-//            $table->index(['user_id','book_id','status']);
-//            $table->index(['status','expires_at']);
+            $table->index(['user_id','book_id','status']);
+            $table->index(['status','expires_at']);
 
         });
     }
