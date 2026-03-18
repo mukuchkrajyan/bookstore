@@ -105,7 +105,6 @@ class ReservationService
             $reservation->update([
                 'status' => $status
             ]);
-
         });
     }
 
