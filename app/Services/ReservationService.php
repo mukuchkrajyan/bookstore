@@ -92,7 +92,7 @@ class ReservationService
             $reservation = Reservation::query()
                 ->lockForUpdate()
                 ->findOrFail($id);
-            
+
             if ($reservation->status === ReservationStatus::Pending &&
                 $status === ReservationStatus::Cancelled) {
 
@@ -105,7 +105,6 @@ class ReservationService
             $reservation->update([
                 'status' => $status
             ]);
-
         });
     }
 
