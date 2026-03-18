@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ReservationStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class Reservation extends Model
@@ -12,6 +13,10 @@ class Reservation extends Model
         'quantity',
         'status',
         'expires_at',
+    ];
+
+    protected $casts = [
+        'status' => ReservationStatus::class,
     ];
 
     public function book()
