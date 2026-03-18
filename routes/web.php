@@ -8,25 +8,25 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => view('welcome'));
 
-Route::middleware(['auth','verified','api.token'])->group(function () {
+Route::middleware(['auth', 'verified', 'api.token', 'redirect.if.admin'])->group(function () {
 
-    Route::get('/user-interface', [HomeController::class,'index'])
+    Route::get('/user-interface', [HomeController::class, 'index'])
         ->name('home');
 
     // user reservation (API testing)
-    Route::post('/reservations', [ReservationController::class,'store']);
+    Route::post('/reservations', [ReservationController::class, 'store']);
 
 });
 
 
-Route::middleware(['auth','admin'])->group(function () {
+Route::middleware(['auth', 'admin'])->group(function () {
 
     // profile (verified users)
     Route::prefix('profile')->group(function () {
 
-        Route::get('/', [ProfileController::class,'edit'])->name('profile.edit');
-        Route::patch('/', [ProfileController::class,'update'])->name('profile.update');
-        Route::delete('/', [ProfileController::class,'destroy'])->name('profile.destroy');
+        Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     });
 
@@ -36,27 +36,27 @@ Route::middleware(['auth','admin'])->group(function () {
     // books
     Route::prefix('dashboard/books')->group(function () {
 
-        Route::get('/', [BookController::class,'index'])->name('books.index');
-        Route::get('/create', [BookController::class,'create'])->name('books.create');
-        Route::post('/', [BookController::class,'store'])->name('books.store');
-        Route::get('/{id}', [BookController::class,'show'])->name('books.show');
+        Route::get('/', [BookController::class, 'index'])->name('books.index');
+        Route::get('/create', [BookController::class, 'create'])->name('books.create');
+        Route::post('/', [BookController::class, 'store'])->name('books.store');
+        Route::get('/{id}', [BookController::class, 'show'])->name('books.show');
 
     });
 
     // reservations
     Route::prefix('dashboard/reservations')->group(function () {
 
-        Route::get('/', [ReservationController::class,'index'])->name('reservations.index');
-        Route::get('/{id}', [ReservationController::class,'show'])->name('reservations.show');
+        Route::get('/', [ReservationController::class, 'index'])->name('reservations.index');
+        Route::get('/{id}', [ReservationController::class, 'show'])->name('reservations.show');
 
-        Route::post('/{id}/confirm', [ReservationController::class,'confirm'])
+        Route::post('/{id}/confirm', [ReservationController::class, 'confirm'])
             ->name('reservations.confirm');
 
-        Route::post('/{id}/cancel', [ReservationController::class,'cancel'])
+        Route::post('/{id}/cancel', [ReservationController::class, 'cancel'])
             ->name('reservations.cancel');
 
     });
 
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

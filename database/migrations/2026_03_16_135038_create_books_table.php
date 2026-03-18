@@ -19,7 +19,8 @@ return new class extends Migration
             $table->unsignedInteger('stock')->default(0);
             $table->timestamps();
 
-            $table->unique(['title', 'author']);
+            $table->index('stock');
+            $table->index('created_at');
         });
     }
 

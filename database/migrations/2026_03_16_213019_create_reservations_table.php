@@ -22,7 +22,11 @@ return new class extends Migration
                 ->default('pending');
 
             $table->timestamp('expires_at')->nullable();
+
             $table->timestamps();
+
+//            $table->index(['user_id','book_id','status']);
+//            $table->index(['status','expires_at']);
 
         });
     }

@@ -7,6 +7,7 @@ use App\Models\Book;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\DB;
 use App\Events\ReservationCreated;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class ReservationService
@@ -25,45 +26,63 @@ class ReservationService
         return Reservation::findOrFail($id);
     }
 
+    public function hasPendingReservation(int $userId, int $bookId): bool
+    {
+        $query = Reservation::query()
+            ->where('user_id', $userId)
+            ->where('book_id', $bookId)
+            ->where('status', ReservationStatus::Pending);
+
+        return $query->exists();
+    }
+
     public function create(int $userId, int $bookId, int $quantity): Reservation
     {
-        return DB::transaction(function () use ($userId, $bookId, $quantity) {
+        try {
+            return DB::transaction(function () use ($userId, $bookId, $quantity) {
 
-            $book = Book::query()
-                ->lockForUpdate()
-                ->findOrFail($bookId);
+                $book = Book::query()
+                    ->lockForUpdate()
+                    ->findOrFail($bookId);
 
-            if ($book->stock < $quantity) {
-                throw new RuntimeException('Insufficient stock');
-            }
+                // Concurrency safety check: re-check stock inside transaction to prevent race conditions
+                if ($book->stock < $quantity) {
+                    throw new RuntimeException('Insufficient stock');
+                }
 
-            $hasPendingReservation = Reservation::query()
-                ->where('user_id', $userId)
-                ->where('book_id', $bookId)
-                ->where('status', ReservationStatus::Pending)
-                ->lockForUpdate()
-                ->exists();
+                $hasPendingReservation = $this->hasPendingReservation($userId, $bookId);
 
-            if ($hasPendingReservation) {
-                throw new RuntimeException('User already has pending reservation');
-            }
+                // Concurrency safety check: re-check stock inside transaction to prevent race conditions
+                if ($hasPendingReservation) {
+                    throw new RuntimeException('User already has pending reservation');
+                }
 
-            $reservation = Reservation::create([
+                $reservation = Reservation::create([
+                    'user_id' => $userId,
+                    'book_id' => $bookId,
+                    'quantity' => $quantity,
+                    'status' => ReservationStatus::Pending,
+                    'expires_at' => now()->addMinutes(config('reservation.expires_minutes')),
+                ]);
+
+                $book->decrement('stock', $quantity);
+
+                DB::afterCommit(function () use ($reservation) {
+                    event(new ReservationCreated($reservation));
+                });
+
+                return $reservation;
+            });
+        } catch (\Throwable $e) {
+            Log::error('Reservation creation failed', [
                 'user_id' => $userId,
                 'book_id' => $bookId,
                 'quantity' => $quantity,
-                'status' => ReservationStatus::Pending,
-                'expires_at' => now()->addMinutes(30),
+                'error' => $e->getMessage(),
             ]);
 
-            $book->decrement('stock', $quantity);
-
-            DB::afterCommit(function () use ($reservation) {
-                event(new ReservationCreated($reservation));
-            });
-
-            return $reservation;
-        });
+            throw $e;
+        }
     }
 
     public function updateStatus(int $id, ReservationStatus $status): void
